@@ -304,7 +304,7 @@ bool ElementToApproximateFacets(ElementHandleCR source, bvector<PolyfaceHeaderPt
 
 int get(ElementHandle eh, int id)
 {
-	string str;
+	string str = "";
 	char buf[256] = "\0";
 	WString msg;
 
@@ -317,37 +317,44 @@ int get(ElementHandle eh, int id)
 		PolyfaceHeaderPtr meshData;
 		handler->GetMeshData(eh, meshData);
 
+		size_t pointCount = meshData->GetPointCount();
+		size_t faceCount = meshData->GetPointIndexCount();
+		size_t normalCount = meshData->GetNormalCount();
+		size_t colorCount = meshData->GetColorCount();
+		
+		//法线
+		sprintf(buf, "pointCount:%d  faceCount:%d  normalCount:%d  colorCount:%d\n",
+			(int)(pointCount), (int)(faceCount), (int)(normalCount), (int)(colorCount));
+		str += buf;
+		memset(buf, '\0', 256);
+		
+		//点
 		DPoint3dCP point;
 		point = meshData->GetPointCP();
-		size_t count = meshData->GetPointCount();
-
-		str = "Rows(mm)\n";
-		for (size_t i = 0; i < count; i++)
+				
+		for (size_t i = 0; i < pointCount; i++)
 		{
-			sprintf(buf, "%d: (%.2f,%.2f,%.2f)\n", (int)i, point->x, point->y, point->z);
+			sprintf(buf, "v %.2f %.2f %.2f\n", point->x, point->y, point->z);
 			str += buf;
 			memset(buf, '\0', 256);
 			point++;
 		}
-		size_t pic = meshData->GetPointIndexCount();
 
-		sprintf(buf, "DataCount:%d\n  Rows:\n  0: ", (int)(meshData->GetPointIndexCount()));
-		str += buf;
-		memset(buf, '\0', 256);
-
+		//面		
 		const int32_t* pi = meshData->GetPointIndexCP();
-		int j = 1;
-		for (size_t i = 0; i < pic; i++)
+		str += "f ";
+		for (size_t i = 0; i < faceCount; i++)
 		{
 			sprintf(buf, "%d ", (int)(abs(*pi)));
-			str += buf;
-			memset(buf, '\0', 256);
-			if (*pi == 0 && i < pic - 1)
+			if (*pi != 0)
 			{
-				sprintf(buf, "\n%d: ", (int)j);
 				str += buf;
 				memset(buf, '\0', 256);
-				j++;
+			}
+			else
+			{
+				if(i < faceCount - 1)
+					str += "\nf ";
 			}
 			pi++;
 		}
@@ -358,7 +365,7 @@ int get(ElementHandle eh, int id)
 	}
 
 	char file[256] = "\0";
-	sprintf(file, "d:/testData/%d.txt", id);
+	sprintf(file, "d:/testData/%d.obj", id);
 
 	ofstream out(file);
 	if (out.is_open())

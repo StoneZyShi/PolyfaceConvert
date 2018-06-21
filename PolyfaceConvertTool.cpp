@@ -444,61 +444,61 @@ for (PersistentElementRefP elemRef : elemColl)
 }
 }
 
-void thisFileReferenceModel(DgnModelRefP modelRef, WString defaultModelName)
-{
-	WString myString;
-	DgnFileP file = mdlModelRef_getDgnFile(modelRef);
-	myString.Sprintf(L"被参考 FileName=%ls  ModelName=%ls",
-		file->GetFileName(), modelRef->GetDgnModelP()->GetModelName());
-	mdlDialog_dmsgsPrint(myString.GetWCharCP());
-
-	StatusInt* openForWriteStatus = nullptr;
-	if (SUCCESS == file->LoadDgnFile(openForWriteStatus))
-	{
-		for (auto m : file->GetLoadedModelsCollection())
-		{
-			if (defaultModelName != WString(m->GetModelName()))
-			{
-				DgnModel::ElementsCollection mElemColl = m->GetElementsCollection();
-				for (PersistentElementRefP const& mElemRef : mElemColl)
-				{
-					EditElementHandle mSourceEh(mElemRef);
-					myCreateElement(mSourceEh);
-				}
-			}
-		}
-	}
-	else
-	{
-		pri(L"下载参考文件失败");
-	}
-}
-
-int otherFileReferenceModel(DgnModelRefP modelRef,const string filePath)
-{
-	if ((_access(filePath.c_str(), 0)) != -1)
-	{
-		//if (remove(filePath.c_str()) != 0)
-		//{
-		//	pri(L"删除文件失败");
-		//	return -1;
-		//}
-	}
-
-	WString fileName = modelRef->GetDgnFileP()->GetFileName();
-	WString modelName = modelRef->GetDgnModelP()->GetModelName();
-
-	char str[256] = "\0";
-	sprintf(str, "%ls<->%ls", fileName.GetWCharCP(), modelName.GetWCharCP());
-
-	ofstream out(filePath, ios::app);
-	if (out.is_open())
-	{
-		out << str << endl;
-		out.close();
-	}
-	return 0;
-}
+//void thisFileReferenceModel(DgnModelRefP modelRef, WString defaultModelName)
+//{
+//	WString myString;
+//	DgnFileP file = mdlModelRef_getDgnFile(modelRef);
+//	myString.Sprintf(L"被参考 FileName=%ls  ModelName=%ls",
+//		file->GetFileName(), modelRef->GetDgnModelP()->GetModelName());
+//	mdlDialog_dmsgsPrint(myString.GetWCharCP());
+//
+//	StatusInt* openForWriteStatus = nullptr;
+//	if (SUCCESS == file->LoadDgnFile(openForWriteStatus))
+//	{
+//		for (auto m : file->GetLoadedModelsCollection())
+//		{
+//			if (defaultModelName != WString(m->GetModelName()))
+//			{
+//				DgnModel::ElementsCollection mElemColl = m->GetElementsCollection();
+//				for (PersistentElementRefP const& mElemRef : mElemColl)
+//				{
+//					EditElementHandle mSourceEh(mElemRef);
+//					myCreateElement(mSourceEh);
+//				}
+//			}
+//		}
+//	}
+//	else
+//	{
+//		pri(L"下载参考文件失败");
+//	}
+//}
+//
+//int otherFileReferenceModel(DgnModelRefP modelRef,const string filePath)
+//{
+//	if ((_access(filePath.c_str(), 0)) != -1)
+//	{
+//		//if (remove(filePath.c_str()) != 0)
+//		//{
+//		//	pri(L"删除文件失败");
+//		//	return -1;
+//		//}
+//	}
+//
+//	WString fileName = modelRef->GetDgnFileP()->GetFileName();
+//	WString modelName = modelRef->GetDgnModelP()->GetModelName();
+//
+//	char str[256] = "\0";
+//	sprintf(str, "%ls<->%ls", fileName.GetWCharCP(), modelName.GetWCharCP());
+//
+//	ofstream out(filePath, ios::app);
+//	if (out.is_open())
+//	{
+//		out << str << endl;
+//		out.close();
+//	}
+//	return 0;
+//}
 
 string deleteLine(string FileName)
 {
@@ -537,6 +537,11 @@ void openFileAndModel(string filePath)
 		string fileName = str.substr(0, str.find("<->")).c_str();
 		string modelName = str.substr(str.find("<->") + 3, str.rfind("<->"));
 
+		WString file(fileName.c_str()), mode(modelName.c_str());
+		
+		mdlSystem_newDesignFileAndModel(file.GetWCharCP(),mode.GetWCharCP());
+		findAllActive();
+
 		WString name(modelName.c_str());
 		mdlDialog_dmsgsPrint(name.GetWCharCP());
 	}
@@ -556,13 +561,15 @@ void myReferenceModel()
 	DgnModelP pActiveModel = ISessionMgr::GetActiveDgnModelP();
 	DgnModel::ElementsCollection elemColl = pActiveModel->GetElementsCollection();
 	WString myString, elDescr;
+	WString thisFileName(pActiveModel->GetDgnFileP()->GetFileName()), thisModelName(pActiveModel->GetModelName());
+
+	string timeStr = getTime();
+	string filePath = "d:\\file" + timeStr + ".txt";
 
 	for (PersistentElementRefP const& elemRef : elemColl)//循环一次即可，每次循环里面得到内容相同
 	{		
 		ModelRefIteratorP   iterator;
 		DgnModelRefP       modelRef;
-		string timeStr = getTime();
-		string filePath = "d:\\file" + timeStr + ".txt";
 		int lineNum = 0;
 		mdlModelRefIterator_create(&iterator, elemRef->GetDgnModelP(), MRITERATE_PrimaryChildRefs, 0);
 
@@ -588,23 +595,25 @@ void myReferenceModel()
 			lineNum--;
 		} 
 
-		if ((_access(filePath.c_str(), 0)) != -1)
-		{
-			if (remove(filePath.c_str()) != 0)
-			{
-				pri(L"删除文件失败");
-			}
-		}
-
 		mdlModelRefIterator_free(&iterator);
+
 		break;
 	}
+	if ((_access(filePath.c_str(), 0)) != -1)
+	{
+		if (remove(filePath.c_str()) != 0)
+		{
+			pri(L"删除文件失败");
+		}
+		mdlSystem_newDesignFileAndModel(thisFileName.GetWCharCP(), thisModelName.GetWCharCP());
+	}
+
 }
 
 
 Public void startPolyfaceConvertTool(WCharCP unparsed)
 {
-	//findAllActive();  //本文件本Model模型
+	findAllActive();  //本文件本Model模型
 	myReferenceModel(); //参考Model
 }
 

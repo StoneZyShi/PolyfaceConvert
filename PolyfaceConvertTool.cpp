@@ -476,14 +476,14 @@ void thisFileReferenceModel(DgnModelRefP modelRef, WString defaultModelName)
 
 int otherFileReferenceModel(DgnModelRefP modelRef,const string filePath)
 {
-	//if ((_access(filePath.c_str(), 0)) != -1)
-	//{
-	//	if (remove(filePath.c_str()) != 0)
-	//	{
-	//		pri(L"É¾³ýÎÄ¼þÊ§°Ü");
-	//		return -1;
-	//	}
-	//}
+	if ((_access(filePath.c_str(), 0)) != -1)
+	{
+		//if (remove(filePath.c_str()) != 0)
+		//{
+		//	pri(L"É¾³ýÎÄ¼þÊ§°Ü");
+		//	return -1;
+		//}
+	}
 
 	WString fileName = modelRef->GetDgnFileP()->GetFileName();
 	WString modelName = modelRef->GetDgnModelP()->GetModelName();
@@ -500,7 +500,7 @@ int otherFileReferenceModel(DgnModelRefP modelRef,const string filePath)
 	return 0;
 }
 
-string deleteLine(string FileName, int* lineNum)
+string deleteLine(string FileName)
 {
 	vector<string> vecContent;
 	string strLine, str;
@@ -508,12 +508,10 @@ string deleteLine(string FileName, int* lineNum)
 
 	getline(inFile, str);
 	vecContent.push_back(str);
-	*lineNum = -1;
 	while (inFile)
 	{
 		getline(inFile, strLine);
 		vecContent.push_back(strLine);
-		*lineNum++;
 	}
 	inFile.close();
 	
@@ -527,18 +525,13 @@ string deleteLine(string FileName, int* lineNum)
 	}
 
 	outFile.close();
-
-	if (*lineNum < 1)
-	{
-		remove(FileName.c_str());
-	}
-
+	
 	return str;
 }
 
-void openFileAndModel(string filePath, int* lineNum)
+void openFileAndModel(string filePath)
 {
-	string str = deleteLine(filePath,lineNum);
+	string str = deleteLine(filePath);
 	if (str.find("<->") > 0)
 	{
 		string fileName = str.substr(0, str.find("<->")).c_str();
@@ -547,6 +540,15 @@ void openFileAndModel(string filePath, int* lineNum)
 		WString name(modelName.c_str());
 		mdlDialog_dmsgsPrint(name.GetWCharCP());
 	}
+}
+
+string getTime()
+{
+	time_t timep;
+	time(&timep);
+	char tmp[64];
+	strftime(tmp, sizeof(tmp), "%Y-%m-%d--%H-%M-%S", localtime(&timep));
+	return tmp;
 }
 
 void myReferenceModel()
@@ -559,18 +561,40 @@ void myReferenceModel()
 	{		
 		ModelRefIteratorP   iterator;
 		DgnModelRefP       modelRef;
-		string filePath = "d:\\file.txt";
+		string timeStr = getTime();
+		string filePath = "d:\\file" + timeStr + ".txt";
 		int lineNum = 0;
 		mdlModelRefIterator_create(&iterator, elemRef->GetDgnModelP(), MRITERATE_PrimaryChildRefs, 0);
-		while (NULL != (modelRef = mdlModelRefIterator_getNext(iterator)))
+
+		ofstream out(filePath, ios::app);
+		if (out.is_open())
 		{
-			otherFileReferenceModel(modelRef,filePath);
-			++lineNum;
+			while (NULL != (modelRef = mdlModelRefIterator_getNext(iterator)))
+			{
+				WString fileName = modelRef->GetDgnFileP()->GetFileName();
+				WString modelName = modelRef->GetDgnModelP()->GetModelName();
+				char str[256] = "\0";
+				sprintf(str, "%ls<->%ls",fileName.GetWCharCP(),modelName.GetWCharCP());
+
+				out << str << endl;
+				lineNum++;
+			}
+			out.close();
 		}
-		do 
+
+		while (lineNum > 0)
 		{
-			openFileAndModel(filePath,&lineNum);
-		} while (lineNum > 0);
+			openFileAndModel(filePath);
+			lineNum--;
+		} 
+
+		if ((_access(filePath.c_str(), 0)) != -1)
+		{
+			if (remove(filePath.c_str()) != 0)
+			{
+				pri(L"É¾³ýÎÄ¼þÊ§°Ü");
+			}
+		}
 
 		mdlModelRefIterator_free(&iterator);
 		break;

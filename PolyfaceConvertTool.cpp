@@ -302,9 +302,18 @@ bool ElementToApproximateFacets(ElementHandleCR source, bvector<PolyfaceHeaderPt
 }
 
 
-int get(ElementHandle eh, int id)
+string getTime()
 {
-	string str = "";
+	time_t timep;
+	time(&timep);
+	char tmp[64];
+	strftime(tmp, sizeof(tmp), "%Y-%m-%d--%H-%M-%S", localtime(&timep));
+	return tmp;
+}
+
+int get(ElementHandle eh, int id, int iNum)
+{
+	string str = "o\n";
 	char buf[256] = "\0";
 	WString msg;
 
@@ -318,34 +327,47 @@ int get(ElementHandle eh, int id)
 		handler->GetMeshData(eh, meshData);
 
 		size_t pointCount = meshData->GetPointCount();
-		size_t faceCount = meshData->GetPointIndexCount();
+		size_t PointIndexCount = meshData->GetPointIndexCount();
 		size_t normalCount = meshData->GetNormalCount();
-		size_t colorCount = meshData->GetColorCount();
-		
-		//法线
-		sprintf(buf, "pointCount:%d  faceCount:%d  normalCount:%d  colorCount:%d\n",
-			(int)(pointCount), (int)(faceCount), (int)(normalCount), (int)(colorCount));
-		str += buf;
-		memset(buf, '\0', 256);
+		//size_t colorCount = meshData->GetColorCount();
+		//size_t paramCount = meshData->GetParamCount();
+
+		//sprintf(buf, "pointCount:%d  PointIndexCount:%d  normalCount:%d  colorCount:%d  paramCount:%d\n",
+		//	(int)(pointCount), (int)(PointIndexCount), (int)(normalCount), (int)(colorCount), (int)(paramCount));
+		//str += buf;
+		//memset(buf, '\0', 256);
 		
 		//点
-		DPoint3dCP point;
-		point = meshData->GetPointCP();
-				
+		DPoint3dCP point = meshData->GetPointCP();				
 		for (size_t i = 0; i < pointCount; i++)
 		{
-			sprintf(buf, "v %.2f %.2f %.2f\n", point->x, point->y, point->z);
+			sprintf(buf, "v %.7f %.7f %.7f\n", (point->x) / 10000, (point->y) / 10000, (point->z) / 10000);
+			//sprintf(buf, "v %.7f %.7f %.7f\n", point->x, point->y, point->z);
 			str += buf;
 			memset(buf, '\0', 256);
 			point++;
 		}
 
+		//法线
+		//meshData->GetNormalIndexCP();
+		DVec3dCP normal = meshData->GetNormalCP();
+		for (size_t i = 0; i < normalCount; i++)
+		{
+			sprintf(buf, "vn %.2f %.2f %.2f\n", normal->x, normal->y, normal->z);
+			str += buf;
+			memset(buf, '\0', 256);
+			normal++;
+		}
+
+		int32_t const* normalIndex = meshData->GetNormalIndexCP(false);
+
 		//面		
 		const int32_t* pi = meshData->GetPointIndexCP();
 		str += "f ";
-		for (size_t i = 0; i < faceCount; i++)
+		for (size_t i = 0; i < PointIndexCount; i++)
 		{
-			sprintf(buf, "%d ", (int)(abs(*pi)));
+			sprintf(buf, "%d/%d ", (int)(abs(*pi)), *normalIndex);
+			//sprintf(buf, "%d ", (int)(abs(*pi)));
 			if (*pi != 0)
 			{
 				str += buf;
@@ -353,10 +375,10 @@ int get(ElementHandle eh, int id)
 			}
 			else
 			{
-				if(i < faceCount - 1)
+				if(i < PointIndexCount - 1)
 					str += "\nf ";
 			}
-			pi++;
+			pi++; normalIndex++;
 		}
 		str += "\n";
 
@@ -366,14 +388,19 @@ int get(ElementHandle eh, int id)
 
 	char file[256] = "\0";
 	sprintf(file, "d:/testData/%d.obj", id);
+	//sprintf(file, "%d", iNum);
+	//
+	//string timeStr = getTime();
+	//string filePath = "d:\\testData\\" + timeStr + "--" + file + ".obj";
 
+	//ofstream out(file, ios::app);
 	ofstream out(file);
 	if (out.is_open())
 	{
 		out << str.c_str() << endl;
 		out.close();
 	}
-	msg.Sprintf(L"ID=%d ,循环完成\n", id);
+	//msg.Sprintf(L"ID=%d ,循环完成\n", id);
 	mdlDialog_dmsgsPrint(msg.GetWCharCP());
 
 	return 0;
@@ -391,8 +418,9 @@ bool myCreateElement(EditElementHandleR sourceEh)
 	facetOptions->SetAngleTolerance(0.0);
 	facetOptions->SetMaxEdgeLength(0.0);
 	facetOptions->SetMaxFacetWidth(0.0);
-	facetOptions->SetNormalsRequired(false);
-	facetOptions->SetParamsRequired(false);
+	facetOptions->SetNormalsRequired(true);
+	facetOptions->SetParamsRequired(true);
+	facetOptions->SetVertexColorsRequired(true);
 	facetOptions->SetMaxPerFace(3);
 	facetOptions->SetCurvedSurfaceMaxPerFace(3);
 	facetOptions->SetEdgeHiding(true);
@@ -409,15 +437,16 @@ bool myCreateElement(EditElementHandleR sourceEh)
 		myString.Sprintf(L"ID=%d ,转换模型个数=%d\n", id, j);
 		mdlDialog_dmsgsPrint(myString.GetWCharCP());
 
+		//get(sourceEh, id, (int)1);
 		for (size_t i = 0; i < j; i++)
 		{
 			if (SUCCESS == MeshHeaderHandler::CreateMeshElement(tmpEeh, NULL, *meshes[i], true, *sourceEh.GetModelRef()))
 			{
 				myString.Sprintf(L"ID=%d ,创建第%d个模型\n", id, i + 1);
 				mdlDialog_dmsgsPrint(myString.GetWCharCP());
-				ElementHandle source1(tmpEeh);
 
-				get(source1, id);
+				ElementHandle source1(tmpEeh);
+				get(source1, id, (int)i);
 			}
 			else
 				rtn = false;
@@ -431,24 +460,30 @@ bool myCreateElement(EditElementHandleR sourceEh)
 
 void findAllActive()
 {
-DgnModelP pActiveModel = ISessionMgr::GetActiveDgnModelP();
-DgnModel::ElementsCollection elemColl = pActiveModel->GetElementsCollection();
+	DgnModelP pActiveModel = ISessionMgr::GetActiveDgnModelP();
+	DgnModel::ElementsCollection elemColl = pActiveModel->GetElementsCollection();
 
-for (PersistentElementRefP elemRef : elemColl)
-{
-	if (elemRef->IsGraphics())
+	for (PersistentElementRefP elemRef : elemColl)
 	{
-		ElementPropertiesGetterPtr pPropsGetter = ElementPropertiesGetter::Create((ElementHandle)elemRef);
-		UInt32 clr = pPropsGetter->GetColor();
-		LevelId lvl = pPropsGetter->GetLevel();
-		WString myString;
-		myString.Sprintf(L"颜色=%d  图层=%d\n", clr, lvl);
-		mdlDialog_dmsgsPrint(myString.GetWCharCP());
+		//EditElementHandle eh(elemRef);
+		//if (nullptr != dynamic_cast<MeshHeaderHandler*>(&(eh.GetHandler())))
+		//{
+		//	MeshHeaderHandler* meshHandle = dynamic_cast<MeshHeaderHandler*>(&(eh.GetHandler()));
+		//}
 
-		EditElementHandle sourceEh(elemRef);
-		myCreateElement(sourceEh);
+		if (elemRef->IsGraphics())
+		{
+			ElementPropertiesGetterPtr pPropsGetter = ElementPropertiesGetter::Create((ElementHandle)elemRef);
+			UInt32 clr = pPropsGetter->GetColor();
+			LevelId lvl = pPropsGetter->GetLevel();
+			WString myString;
+			myString.Sprintf(L"颜色=%d  图层=%d\n", clr, lvl);
+			mdlDialog_dmsgsPrint(myString.GetWCharCP());
+
+			EditElementHandle sourceEh(elemRef);
+			myCreateElement(sourceEh);
+		}
 	}
-}
 }
 
 //void thisFileReferenceModel(DgnModelRefP modelRef, WString defaultModelName)
@@ -552,15 +587,6 @@ void openFileAndModel(string filePath)
 		WString name(modelName.c_str());
 		mdlDialog_dmsgsPrint(name.GetWCharCP());
 	}
-}
-
-string getTime()
-{
-	time_t timep;
-	time(&timep);
-	char tmp[64];
-	strftime(tmp, sizeof(tmp), "%Y-%m-%d--%H-%M-%S", localtime(&timep));
-	return tmp;
 }
 
 void myReferenceModel()

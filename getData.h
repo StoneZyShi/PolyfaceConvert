@@ -15,6 +15,7 @@
 #include <iostream>                                       
 #include <fstream>
 #include <string>
+#include "sqlliteRW.h"
 
 using namespace std;
 USING_NAMESPACE_BENTLEY_DGNPLATFORM;
@@ -27,13 +28,16 @@ USING_NAMESPACE_BENTLEY_MSTNPLATFORM_ELEMENT;
 class getData
 {
 public:
+	getData(sqlliteRW* sqlRW);
 	getData();
 	~getData();
 
 	void findAllActive();
 	bool creatReference(EditElementHandleR sourceEh);
-	std::string get(PolyfaceHeaderPtr meshData, int id, int iNum);
+	std::string get(PolyfaceHeaderPtr meshData);
 	bool ElementToApproximateFacets(ElementHandleCR source, bvector<PolyfaceHeaderPtr> &output, IFacetOptionsP options);
+private:
+	sqlliteRW* sqlRW;
 };
 
 

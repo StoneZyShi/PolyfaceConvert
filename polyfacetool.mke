@@ -50,6 +50,10 @@ appObjects = \
     $(o)$(appName)$(oext) \
     $(o)PolyfaceCreateTool$(oext) \
 	$(o)PolyfaceConvertTool$(oext) \
+	$(o)findAllReference$(oext) \
+	$(o)getData$(oext) \
+	$(o)utility$(oext) \
+	$(o)sqlliteRW$(oext) \
     
 DLM_OBJECT_DEST         = $(o)
 DLM_NAME                = $(appName)
@@ -64,7 +68,8 @@ LINKER_LIBRARIES        = $(mdlLibs)bentley.lib \
                           $(mdlLibs)RmgrTools.lib \
                           $(mdlLibs)BentleyGeom.lib \
                           $(mdlLibs)DgnPlatform.lib \
-                          $(mdlLibs)dgnview.lib 
+                          $(mdlLibs)dgnview.lib \
+						  $(mdlLibs)easySQLite.lib
 DLM_NO_SIGN             = 1     # only for test apps; any delivered app MUST be signed.
 
 #----------------------------------------------------------------------
@@ -94,6 +99,14 @@ $(o)$(appName)$(oext)              : $(baseDir)$(appName).cpp          $(o)$(sAp
 $(o)PolyfaceCreateTool$(oext)      : $(baseDir)PolyfaceCreateTool.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)$(appName).h
 
 $(o)PolyfaceConvertTool$(oext)     : $(baseDir)PolyfaceConvertTool.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)$(appName).h
+
+$(o)findAllReference$(oext)     : $(baseDir)findAllReference.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)$(appName).h
+
+$(o)getData$(oext)     : $(baseDir)getData.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)$(appName).h
+
+$(o)utility$(oext)     : $(baseDir)utility.cpp
+
+$(o)sqlliteRW$(oext)     : $(baseDir)sqlliteRW.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)
 
 #----------------------------------------------------------------------
 #       The following section generates the MDL Intermediate module. This

@@ -1,5 +1,10 @@
 #include "getData.h"
+#include "utility.h"
 
+getData::getData(sqlliteRW* sqlRW)
+{
+	this->sqlRW = sqlRW;
+}
 
 getData::getData()
 {
@@ -54,7 +59,14 @@ bool getData::creatReference(EditElementHandleR sourceEh)
 
 		for (size_t i = 0; i < j; i++)
 		{
-			get(meshes[i], id, (int)i);
+			//get(meshes[i]);
+			sqlRW->set_id();
+			sqlRW->set_hostfile_name(ws2s(sourceEh.GetDgnFileP()->GetFileName().GetWCharCP()));
+			sqlRW->set_id_infile((int)id);
+
+			std::string str = get(meshes[i]);
+
+			sqlRW->addData(str);
 		}
 	}
 	else
@@ -63,9 +75,9 @@ bool getData::creatReference(EditElementHandleR sourceEh)
 	return rtn;
 }
 
-std::string getData::get(PolyfaceHeaderPtr meshData, int id, int iNum)
+std::string getData::get(PolyfaceHeaderPtr meshData)
 {
-	string str = "o\n";
+	std::string str = "o\n";
 	char buf[256] = "\0";
 	WString msg;
 
@@ -118,21 +130,7 @@ std::string getData::get(PolyfaceHeaderPtr meshData, int id, int iNum)
 		if (normalIndex != nullptr)
 			normalIndex++;
 	}
-	str += "\n";
-
-	char file[256] = "\0";
-	sprintf(file, "d:/testData/%d_%d.obj", id, iNum);
-
-	//string timeStr = getTime();
-	//string filePath = "d:\\testData\\" + timeStr + "--" + file + ".obj";
-
-	ofstream out(file);
-	if (out.is_open())
-	{
-		out << str.c_str() << endl;
-		out.close();
-	}
-
+	
 	return str;
 }
 

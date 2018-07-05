@@ -6,8 +6,9 @@ using namespace std;
 
 extern "C" void mdlSystem_setBatchProcessingState(BatchProcessing_States, const WChar*);
 
-findAllReference::findAllReference()
+findAllReference::findAllReference(sqlliteRW* sqlRW)
 {
+	this->sqlRW = sqlRW;
 }
 
 
@@ -30,7 +31,7 @@ void findAllReference::openFileAndModel(std::string filePath)
 		{
 			Sleep(5000);
 
-			getData data;
+			getData data(sqlRW);
 			data.findAllActive();  //本文件本Model模型
 			scanFeference(); //参考Model
 		}
@@ -44,8 +45,7 @@ void findAllReference::scanFeference()
 	WString myString, elDescr;
 	WString thisFileName(pActiveModel->GetDgnFileP()->GetFileName()), thisModelName(pActiveModel->GetModelName());
 
-	string timeStr = getTime();
-	string filePath = "d:\\file" + timeStr + ".txt";
+	string filePath = "d:\\file" + getTime() + ".txt";
 
 	for (PersistentElementRefP const& elemRef : elemColl)//循环一次即可，每次循环里面得到内容相同
 	{
@@ -87,14 +87,14 @@ void findAllReference::scanFeference()
 
 		break;
 	}
-	if ((_access(filePath.c_str(), 0)) != -1)
-	{
-		if (remove(filePath.c_str()) != 0)
-		{
-			pri(L"删除文件失败");
-		}
-		mdlSystem_newDesignFileAndModel(thisFileName.GetWCharCP(), thisModelName.GetWCharCP());
-	}
+	//if ((_access(filePath.c_str(), 0)) != -1)
+	//{
+	//	if (remove(filePath.c_str()) != 0)
+	//	{
+	//		pri(L"删除文件失败");
+	//	}
+	//	mdlSystem_newDesignFileAndModel(thisFileName.GetWCharCP(), thisModelName.GetWCharCP());
+	//}
 }
 
 

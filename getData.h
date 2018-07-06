@@ -1,43 +1,25 @@
 #pragma once
-#include "polyfacetool.h"
-#include "..\include\dgnplatform\MeshHeaderHandler.h"
-#include "..\include\DgnPlatform\ElementGraphics.h"
-#include "..\include\DgnView\LocateSubEntityTool.h"
-#include <Mstn\ISessionMgr.h> 
-#include <Mstn\MdlApi\MdlApi.h>
-#include <DgnPlatform\DgnPlatformApi.h>
-#include <DgnPlatform\Handler.h>
-#include <PSolid\PSolidCoreAPI.h>
-#include <DgnPlatform\SectionClip.h>
-
 #include "utility.h"
-#include <Windows.h>
-#include <iostream>                                       
-#include <fstream>
-#include <string>
 #include "sqlliteRW.h"
 
-using namespace std;
-USING_NAMESPACE_BENTLEY_DGNPLATFORM;
-USING_NAMESPACE_BENTLEY_MSTNPLATFORM;
-USING_NAMESPACE_BENTLEY_MSTNPLATFORM_ELEMENT;
-
-
-#define pri(str) mdlDialog_dmsgsPrint(str);
 
 class getData
 {
 public:
-	getData(sqlliteRW* sqlRW);
+	getData(sqlliteRW* sqlRW, WString referencePath);
 	getData();
 	~getData();
 
-	void findAllActive();
-	bool creatReference(EditElementHandleR sourceEh);
-	std::string get(PolyfaceHeaderPtr meshData);
+	WString findAllActive();
+	bool creatReference(EditElementHandleR sourceEh, WString modelName);
+	WString get(PolyfaceHeaderPtr meshData);
 	bool ElementToApproximateFacets(ElementHandleCR source, bvector<PolyfaceHeaderPtr> &output, IFacetOptionsP options);
+	WString relativePath(WString absolutePath);
+
 private:
 	sqlliteRW* sqlRW;
+	WString referencePath;
+
 };
 
 

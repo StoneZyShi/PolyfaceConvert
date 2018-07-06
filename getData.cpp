@@ -1,9 +1,13 @@
 #include "getData.h"
-#include "utility.h"
+#include "findAllReference.h"
 
-getData::getData(sqlliteRW* sqlRW)
+getData::getData(sqlliteRW* sqlRW, WString referencePath)
 {
 	this->sqlRW = sqlRW;
+	if (referencePath == L"")
+		this->referencePath = referencePath;
+	else
+		this->referencePath = referencePath + L"->";
 }
 
 getData::getData()
@@ -15,7 +19,7 @@ getData::~getData()
 {
 }
 
-void getData::findAllActive()
+WString getData::findAllActive()
 {
 	DgnModelP pActiveModel = ISessionMgr::GetActiveDgnModelP();
 	DgnModel::ElementsCollection elemColl = pActiveModel->GetElementsCollection();
@@ -25,16 +29,21 @@ void getData::findAllActive()
 		if (elemRef->IsGraphics())
 		{
 			EditElementHandle sourceEh(elemRef);
-			creatReference(sourceEh);
+			WString name = sourceEh.GetDgnModelP()->GetModelName();
+#ifdef  MY_DEBUG
+			pri(name.GetWCharCP());
+#endif //  MY_DEBUG
+			creatReference(sourceEh,name);
 		}
 	}
+
+	return referencePath;
 }
 
-bool getData::creatReference(EditElementHandleR sourceEh)
+bool getData::creatReference(EditElementHandleR sourceEh, WString modelName)
 {
 	bool rtn = true;
 
-	//pri(L"CreateElement");
 	IFacetOptionsPtr facetOptions = IFacetOptions::New();
 	//Set different parameters for facet.
 	facetOptions->SetIgnoreFaceMaterialAttachments(true); // Don't separate multi-symbology BReps by face symbology...
@@ -50,7 +59,7 @@ bool getData::creatReference(EditElementHandleR sourceEh)
 	facetOptions->SetEdgeHiding(true);
 	facetOptions->SetSmoothTriangleFlowRequired(true);
 
-	int id = (int)(sourceEh.GetElementId());
+	unsigned int id = (unsigned int)(sourceEh.GetElementId());
 	bvector<PolyfaceHeaderPtr> meshes;
 	if (true == ElementToApproximateFacets(sourceEh, meshes, facetOptions.get()))
 	{
@@ -59,12 +68,16 @@ bool getData::creatReference(EditElementHandleR sourceEh)
 
 		for (size_t i = 0; i < j; i++)
 		{
-			//get(meshes[i]);
 			sqlRW->set_id();
-			sqlRW->set_hostfile_name(ws2s(sourceEh.GetDgnFileP()->GetFileName().GetWCharCP()));
-			sqlRW->set_id_infile((int)id);
+			WString fileName = sourceEh.GetDgnFileP()->GetFileName();
+			referencePath += fileName + L"(" + modelName + L")";
+#ifdef MY_DEBUG
+			pri(referencePath.GetWCharCP());
+#endif // MY_DEBUG
+			sqlRW->set_hostfile_name(referencePath);
+			sqlRW->set_id_infile((unsigned int)id);
 
-			std::string str = get(meshes[i]);
+			WString str = get(meshes[i]);
 
 			sqlRW->addData(str);
 		}
@@ -75,7 +88,7 @@ bool getData::creatReference(EditElementHandleR sourceEh)
 	return rtn;
 }
 
-std::string getData::get(PolyfaceHeaderPtr meshData)
+WString getData::get(PolyfaceHeaderPtr meshData)
 {
 	std::string str = "o\n";
 	char buf[256] = "\0";
@@ -131,7 +144,7 @@ std::string getData::get(PolyfaceHeaderPtr meshData)
 			normalIndex++;
 	}
 	
-	return str;
+	return WString(str.c_str());
 }
 
 bool getData::ElementToApproximateFacets(ElementHandleCR source, bvector<PolyfaceHeaderPtr>& output, IFacetOptionsP options)
@@ -141,4 +154,16 @@ bool getData::ElementToApproximateFacets(ElementHandleCR source, bvector<Polyfac
 
 	ElementGraphicsOutput::Process(source, dest);
 	return output.size() > 0 ? true : false;
+}
+
+WString getData::relativePath(WString absolutePath)
+{
+	if (this->referencePath == L"")
+		return absolutePath.substr(absolutePath.rfind(L"\\"), absolutePath.length() - absolutePath.rfind(L"\\"));
+	else
+	{
+
+	}
+
+	return WString();
 }

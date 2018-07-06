@@ -54,6 +54,7 @@ appObjects = \
 	$(o)getData$(oext) \
 	$(o)utility$(oext) \
 	$(o)sqlliteRW$(oext) \
+	$(o)fileControl$(oext) \
     
 DLM_OBJECT_DEST         = $(o)
 DLM_NAME                = $(appName)
@@ -104,9 +105,11 @@ $(o)findAllReference$(oext)     : $(baseDir)findAllReference.cpp     $(o)$(sAppN
 
 $(o)getData$(oext)     : $(baseDir)getData.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)$(appName).h
 
-$(o)utility$(oext)     : $(baseDir)utility.cpp
+$(o)utility$(oext)     : $(baseDir)utility.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)
 
 $(o)sqlliteRW$(oext)     : $(baseDir)sqlliteRW.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)
+
+$(o)fileControl$(oext)     : $(baseDir)fileControl.cpp     $(o)$(sAppName)cmd.h $(baseDir)$(sAppName)ids.h $(baseDir)
 
 #----------------------------------------------------------------------
 #       The following section generates the MDL Intermediate module. This

@@ -10,10 +10,10 @@
 using namespace std;
 
 
-sqlliteRW::sqlliteRW(std::string fileName)
+sqlliteRW::sqlliteRW(WString fileName)
 {
 	obj.id = 0;
-	this->fileName = fileName;
+	this->fileName = ws2s(fileName.GetWCharCP());
 }
 
 
@@ -38,7 +38,9 @@ bool sqlliteRW::creatObjTable()
 	int result = sqlite3_open(fileName.c_str(), &db);
 	if (!result)
 	{
-		//pri(L"Open the database sqlite.db sucessfully\n");
+#ifdef MY_DEBUG
+		pri(L"Open the database sqlite.db sucessfully\n");
+#endif
 	}
 
 	/* Create SQL statement */
@@ -51,12 +53,15 @@ bool sqlliteRW::creatObjTable()
 		"gudi                  INT );";
 	result = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
 	if (result != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		//fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		pri(L"SQL error:´´½¨Ê§°Ü");
 		sqlite3_free(zErrMsg);
 	}
 	else
 	{
-		//pri(L"Table created successfully\n");
+#ifdef MY_DEBUG
+		pri(L"Table created successfully\n");
+#endif
 	}
 
 	sqlite3_close(db);
@@ -64,10 +69,11 @@ bool sqlliteRW::creatObjTable()
 	return false;
 }
 
-bool sqlliteRW::addData(std::string str)
+bool sqlliteRW::addData(WString STR)
 {
 	sqlite3 *db;
 	sqlite3_stmt *stat;
+	std::string str = ws2s(STR.GetWCharCP());
 
 	int result = sqlite3_open(fileName.c_str(), &db);
 	if (!result)
@@ -101,14 +107,14 @@ void sqlliteRW::set_id()
 	this->obj.id++;
 }
 
-void sqlliteRW::set_hostfile_name(std::string hostfile_name)
+void sqlliteRW::set_hostfile_name(WString hostfile_name)
 {
-	this->obj.hostfile_name = hostfile_name;
+	this->obj.hostfile_name = ws2s(hostfile_name.GetWCharCP());
 }
 
-void sqlliteRW::set_elem_guid_infile(std::string elem_guid_infile)
+void sqlliteRW::set_elem_guid_infile(WString elem_guid_infile)
 {
-	this->obj.elem_guid_infile = elem_guid_infile;
+	this->obj.elem_guid_infile = ws2s(elem_guid_infile.GetWCharCP());
 }
 
 void sqlliteRW::set_id_infile(int id_infile)
